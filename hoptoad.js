@@ -2,13 +2,14 @@ const xmpp = require("simple-xmpp");
 const colors = require("colors");
 const forker = require("child_process");
 const fs = require("fs");
+const path = require("path");
 
 class Hoptoad {
 	constructor(){
 		var args = process.argv.slice(2, process.argv.length);
 
 		this.authorized = {};
-		this.cwd = __dirname;
+		this.cwd = process.cwd();
 
 		this.jid = args[0];
 		this.jidPassword = args[1];
@@ -61,6 +62,11 @@ class Hoptoad {
 
 	}
 
+	$setCwd(path){
+		this.cwd = path;
+		xmpp.setPresence("chat", this.cwd);
+	}
+
 	/**Callbacks*/
 	$onOnline(info){
 		this.$log("green", "Connected and online");
@@ -102,6 +108,7 @@ class Hoptoad {
 				this.authorized[request.sender] = true;
 				this.$log("green", "Authorized: " + request.sender);
 				this.$sendMessage(request.sender, "Hoptoad", "Authorized successfully.");
+				this.$setCwd(this.cwd);
 			} else {
 				this.$log("red", "Auth failed: " + request.sender);
 				this.$sendMessage(request.sender, "Hoptoad", "Auth failed, wrong password.");
@@ -115,8 +122,16 @@ class Hoptoad {
 	$execRequest(request){
 		var command = request.args.join(" ");
 
+		if (command == "ht_kill"){
+			xmpp.disconnect();
+		}
+
+		if (request.args[0] == "cd"){
+			this.cwd = path.resolve(this.cwd, request.args[1] || "./");
+		}
+
 		forker.exec(command, {
-			
+			cwd : this.cwd
 		}, (err, out)=>{
 			if (err){
 				this.$log("red", "Command error: " + err);
