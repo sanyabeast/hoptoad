@@ -13,3 +13,4 @@ Tool allows you to remotely get access to terminal over xmpp protocol (aka jabbe
 ## Issues
 1. Windows cmd`s encoding
 2. Connection keeping alive mechanism
+3. Encryption and security
