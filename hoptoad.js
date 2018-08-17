@@ -1,6 +1,6 @@
 const xmpp = require("simple-xmpp");
 const colors = require("colors");
-const exec = require('child_process').exec;
+const exec = require("child_process").exec;
 
 class Hoptoad {
 	constructor(){
@@ -35,6 +35,24 @@ class Hoptoad {
 			xmpp.on("online", this.$onOnline.bind(this));
 			xmpp.on("chat", this.$onChat.bind(this));
 			xmpp.on("close", this.$onClose.bind(this));
+
+			if (process.platform === "win32") {
+			  	var rl = require("readline").createInterface({
+			  	  	input: process.stdin,
+			  	  	output: process.stdout
+			  	});
+	
+			  	rl.on("SIGINT", function () {
+			  	  	process.emit("SIGINT");
+			  	});
+			}
+
+			process.on("SIGINT", ()=>{
+			  	this.$log("red", "Process interruption");
+			  	xmpp.disconnect();
+			  	process.exit();
+			});
+
 		} catch(err){
 			this.$log("red", "Failed to establish connection");
 		}
@@ -44,6 +62,7 @@ class Hoptoad {
 	/**Callbacks*/
 	$onOnline(info){
 		this.$log("green", "Connected and online");
+		xmpp.setPresence("chat", "Hoptoad started at " + (new Date()).toTimeString().split(" ")[0]);
 	}
 
 	$onClose(info){
@@ -68,53 +87,40 @@ class Hoptoad {
 	}
 
 	$parseRequest(sender, message){
-		message = message.charAt(0).toLowerCase() + message.substr(1);
-		var splitted = message.split(" ");
-		var program = splitted.shift();
-		var command = splitted.shift();
-		var args = splitted;
-
 		return {
 			sender : sender,
-			program : program,
-			command : command,
-			args : args
-		};
+			args : message.split(" ")
+		}
 	}
 
 	$invokeRequest(request){
-		if (!this.authorized[request.sender] && request.program != "hoptoad" && request.command != "auth"){
-			this.$log("red", "Attempt to get access from unathorized account: " + request.sender);
-			this.$sendMessage(request.sender, "hoptoad", "You need to authorize first, use \"hoptoad auth password\"");
-		} else if (!this.authorized[request.sender] && request.program == "hoptoad" && request.command == "auth"){
-			if (request.args[0] == this.accessPassword){
-				this.authorized[request.sender] = true;
-				this.$log("green", "authorized successfully: " + request.sender);
-				this.$sendMessage(request.sender, "hoptoad", "authorized successfully");
-			} else {
-				this.$log("red", "auth failed, wrong password: " + request.sender);
-				this.$sendMessage(request.sender, "hoptoad", "auth failed, wrong password");
-			}
-		} else if (this.authorized[request.sender]){
-			this.$invokeAuthorizedRequest(request);
-		}
-	}
+		if (!this.authorized[request.sender]){
+			this.$log("red", "Attempt to get access from unauthorized account: " + request.sender);
 
-	$invokeAuthorizedRequest(request){
-		switch (request.program){
-			case "term":
-				let termArgs = request.args.slice();
-				termArgs.unshift(request.command);
-				this.$log("yellow", "Start invoking command \"" + termArgs.join(" ") + "\"");
-				exec(termArgs.join(" "), {
-					cwd : this.cwd
-				}, (err, stdout, stderr)=>{
-					this.$sendMessage(request.sender, stdout);
-					console.log(err, stdout, stderr);
-				});
-			break;
+			if (this.accessPassword == request.args[0]){
+				this.authorized[request.sender] = true;
+				this.$log("green", "Authorized: " + request.sender);
+				this.$sendMessage(request.sender, "Hoptoad", "Authorized successfully.");
+			} else {
+				this.$log("red", "Auth failed: " + request.sender);
+				this.$sendMessage(request.sender, "Hoptoad", "Auth failed, wrong password.");
+			}
+			
+		} else {
+			var command = request.args.join(" ");
+
+			exec(command, {
+				
+			}, (err, out)=>{
+				if (err){
+					this.$log("red", "Command error: " + err);
+					this.$sendMessage(request.sender, "Terminal", err);
+				} else {
+					this.$log("green", "Command out: " + out);
+					this.$sendMessage(request.sender, "Terminal", out);
+				}
+			});
 		}
-		console.log(request);
 	}
 }
 
