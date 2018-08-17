@@ -1,5 +1,5 @@
 # Hoptoad
-Tool allows you to remotely get access to terminal over xmpp protocol (aka jabber).
+A tool that allows you to remotely get access to terminal over xmpp protocol (aka jabber).
 
 ## Using
 1. Create a jabber account for Hoptoad.
