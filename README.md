@@ -9,7 +9,7 @@ Thanks to [simple-xmpp](https://github.com/simple-xmpp/node-simple-xmpp) and [no
 4. Run Hoptoad: node hoptoad.js "hoptoad_acc@jabber.xxx" "hoptoad_acc_password" "access_password"
 5. Use. 
 
-![screen](screen.jpg?raw=true ""){:height="100px" width="100px"}
+![screen](screen.jpg?raw=true "")
 
 ## Issues
 1. Windows cmd's encoding issue (Seems like it`s unfixable because of Microsoft's guys' lack of brain. Better use linux.) [Details](https://github.com/nodejs/node-v0.x-archive/issues/2190)
