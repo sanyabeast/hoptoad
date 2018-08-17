@@ -10,6 +10,7 @@ class Hoptoad {
 
 		this.authorized = {};
 		this.cwd = process.cwd();
+		this.revokeOnDisconnection = true;
 
 		this.jid = args[0];
 		this.jidPassword = args[1];
@@ -52,8 +53,9 @@ class Hoptoad {
 
 			process.on("SIGINT", ()=>{
 			  	this.$log("red", "Process interruption");
+			  	this.revokeOnDisconnection = false;
 			  	xmpp.disconnect();
-			  	process.exit();
+			  	
 			});
 
 		} catch(err){
@@ -74,7 +76,15 @@ class Hoptoad {
 	}
 
 	$onClose(info){
-		this.$log("red", "Connected has been terminated");
+		this.$log("red", "Connection has been terminated");
+		if (!this.revokeOnDisconnection){
+			process.exit();
+		} else {
+			xmpp.connect({
+				jid : this.jid,
+				password : this.jidPassword
+			});
+		}
 	}
 
 	$onChat(sender, message){
@@ -123,7 +133,9 @@ class Hoptoad {
 		var command = request.args.join(" ");
 
 		if (command == "ht_kill"){
+			this.revokeOnDisconnection = false;
 			xmpp.disconnect();
+			return;
 		}
 
 		if (request.args[0] == "cd"){
