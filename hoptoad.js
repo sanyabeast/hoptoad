@@ -1,6 +1,7 @@
 const xmpp = require("simple-xmpp");
 const colors = require("colors");
-const exec = require("child_process").exec;
+const forker = require("child_process");
+const fs = require("fs");
 
 class Hoptoad {
 	constructor(){
@@ -35,6 +36,7 @@ class Hoptoad {
 			xmpp.on("online", this.$onOnline.bind(this));
 			xmpp.on("chat", this.$onChat.bind(this));
 			xmpp.on("close", this.$onClose.bind(this));
+			xmpp.on("error", this.$onError.bind(this));
 
 			if (process.platform === "win32") {
 			  	var rl = require("readline").createInterface({
@@ -72,12 +74,18 @@ class Hoptoad {
 	$onChat(sender, message){
 		this.$log("yellow", "Recieved message from \"" + sender + "\": " + message);
 		this.$processMessage(sender, message);
-	}	
+	}
+
+	$onError(message){
+		console.log(arguments);
+	}		
 
 	/**Messages processing*/
 	$processMessage(sender, message){
-		var request = this.$parseRequest(sender, message);
-		this.$invokeRequest(request);
+		this.$processRequest({
+			sender : sender,
+			args : message.split(" ")
+		});
 	}
 
 	$sendMessage(target, theme, message){
@@ -86,14 +94,7 @@ class Hoptoad {
 		xmpp.send(target, message);
 	}
 
-	$parseRequest(sender, message){
-		return {
-			sender : sender,
-			args : message.split(" ")
-		}
-	}
-
-	$invokeRequest(request){
+	$processRequest(request){
 		if (!this.authorized[request.sender]){
 			this.$log("red", "Attempt to get access from unauthorized account: " + request.sender);
 
@@ -107,20 +108,24 @@ class Hoptoad {
 			}
 			
 		} else {
-			var command = request.args.join(" ");
-
-			exec(command, {
-				
-			}, (err, out)=>{
-				if (err){
-					this.$log("red", "Command error: " + err);
-					this.$sendMessage(request.sender, "Terminal", err);
-				} else {
-					this.$log("green", "Command out: " + out);
-					this.$sendMessage(request.sender, "Terminal", out);
-				}
-			});
+			this.$execRequest(request);
 		}
+	}
+
+	$execRequest(request){
+		var command = request.args.join(" ");
+
+		forker.exec(command, {
+			
+		}, (err, out)=>{
+			if (err){
+				this.$log("red", "Command error: " + err);
+				this.$sendMessage(request.sender, "Terminal", err);
+			} else {
+				this.$log("green", "Command out: " + out);
+				this.$sendMessage(request.sender, "Terminal", out);
+			}
+		});
 	}
 }
 
