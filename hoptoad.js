@@ -1,3 +1,4 @@
+"use strict";
 const xmpp = require("simple-xmpp");
 const colors = require("colors");
 const forker = require("child_process");
@@ -12,9 +13,9 @@ class Hoptoad {
 		this.cwd = process.cwd();
 		this.revokeOnDisconnection = true;
 
-		this.jid = args[0];
-		this.jidPassword = args[1];
-		this.accessPassword = args[2];
+		this.jid = unescape(args[0]);
+		this.jidPassword = unescape(args[1]);
+		this.accessPassword = unescape(args[2]);
 
 		this.$initClient();
 	}
@@ -55,6 +56,7 @@ class Hoptoad {
 			  	this.$log("red", "Process interruption");
 			  	this.revokeOnDisconnection = false;
 			  	xmpp.disconnect();
+			  	setTimeout(this.$onClose.bind(this), 3000);
 			  	
 			});
 
